@@ -9,7 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r Libraries Install and Load, echo=FALSE }
+```{r Libraries Install and Load, echo=FALSE, include=FALSE}
 #install.packages("remotes")
 #library(remotes)
 #install_github("r-spatial/sf")
@@ -31,7 +31,7 @@ library(data.table)#
 
 ## Introduction
 
-This is an [R Markdown](%5Bhttp://rmarkdown.rstudio.com)](<http://rmarkdown.rstudio.com>)) Notebook. When you execute code within the notebook, the results appear beneath the code.
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code.
 
 Try executing this chunk by clicking the \*Run\* button within the chunk or by placing your cursor inside it and pressing \*Ctrl+Shift+Enter\*.
 

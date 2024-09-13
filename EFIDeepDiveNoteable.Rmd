@@ -3,13 +3,16 @@ title: "EFI Deep Dive"
 author: "Lucia Michielin"
 date: "9/13/2024"
 output: html_document
+editor_options: 
+  markdown: 
+    wrap: sentence
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r Libraries Install and Load, echo=FALSE }
+```{r Libraries Install and Load, echo=FALSE, include=FALSE}
 #install.packages("tmap")
 library(tmap)# to plot geographical data
 library(quanteda)# to do text analysis 
@@ -22,7 +25,8 @@ library(data.table)#
 
 ## Introduction
 
-This is an [R Markdown](%5Bhttp://rmarkdown.rstudio.com)](<http://rmarkdown.rstudio.com>)) Notebook. When you execute code within the notebook, the results appear beneath the code.
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook.
+When you execute code within the notebook, the results appear beneath the code.
 
 Try executing this chunk by clicking the \*Run\* button within the chunk or by placing your cursor inside it and pressing \*Ctrl+Shift+Enter\*.
 
@@ -30,7 +34,8 @@ Try executing this chunk by clicking the \*Run\* button within the chunk or by p
 plot(cars)
 ```
 
-Ok that is a standard dataset that does not mean much. The mtcars dataset is a built-in dataset in R that contains measurements on 11 different attributes for 32 different cars.
+Ok that is a standard dataset that does not mean much.
+The mtcars dataset is a built-in dataset in R that contains measurements on 11 different attributes for 32 different cars.
 
 So let's see some thinking more interesting!
 
@@ -38,11 +43,15 @@ So let's see some thinking more interesting!
 
 The Statistical Accounts of Scotland are a series of documentary publications, related in subject matter though published at different times, covering life in Scotland in the 18th and 19th.
 
-The Old (or First) Statistical Account of Scotland was published between 1791 and 1799 by Sir John Sinclair of Ulbster. The New (or Second) Statistical Account of Scotland published under the auspices of the General Assembly of the Church of Scotland between 1834 and 1845. These first two Statistical Accounts of Scotland are unique records of life during the agricultural and industrial revolutions in Europe.
+The Old (or First) Statistical Account of Scotland was published between 1791 and 1799 by Sir John Sinclair of Ulbster.
+The New (or Second) Statistical Account of Scotland published under the auspices of the General Assembly of the Church of Scotland between 1834 and 1845.
+These first two Statistical Accounts of Scotland are unique records of life during the agricultural and industrial revolutions in Europe.
 
 ## Structure of the dataset
 
-The original publication has been scanned and OCRed and each single record has been collected in a .txt file. The name of each file contain information about the document itself. For example StAS.2.15.91.P.Orkney.Cross_and_Burness
+The original publication has been scanned and OCRed and each single record has been collected in a .txt file.
+The name of each file contain information about the document itself.
+For example StAS.2.15.91.P.Orkney.Cross_and_Burness
 
 -   StAs.2.15.91 -\> Second Statistical Account
 
@@ -60,7 +69,8 @@ All our .txt files are in a directory named Account so I can write a function th
 
 Doing it manually would take a ridiculous amount of time but that is what computer are for so let's see what we can do.
 
-1\. Create a new object that contain the path to our directory
+1\.
+Create a new object that contain the path to our directory
 
 ```{r set directory}
 text_files_dir <- "Accounts"
@@ -96,7 +106,8 @@ write.csv(Scotdata, "text_data.csv", row.names = FALSE)
 
 ### Fix some formatting issues
 
-Fix the going to the next line issue. i.e. sub "- " with nothing "" There are a lot of formatting errors (next line, next paragraph) that we want to clean up
+Fix the going to the next line issue.
+i.e. sub "-" with nothing "" There are a lot of formatting errors (next line, next paragraph) that we want to clean up
 
 ```{r Clean data}
 ScotdataClean <- mutate_if(Scotdata, 
@@ -107,7 +118,9 @@ ScotdataClean <- mutate_if(Scotdata,
 
 ### Extract More info from the dataset
 
-To do the following steps we are using regex. Short for regular expression, a regex is a string of text that lets you create patterns that help match, locate, and manage text. Think find and replace in Word
+To do the following steps we are using regex.
+Short for regular expression, a regex is a string of text that lets you create patterns that help match, locate, and manage text.
+Think find and replace in Word
 
 1.  Extract area and parish from the title
 
@@ -150,7 +163,6 @@ ScotdataClean$Area<- sub(".*(P|C|G|A|F|M|I)\\.(.*?)\\..*", "\\2", ScotdataClean$
 ScotdataClean$Parish<- sub(".*\\.", "", ScotdataClean$title)
 ```
 
-
 ### Subset the dataset to only keep the text with information from the parishes
 
 We will now start to look at what is inside but before starting our analysis we want to work only on the parish observations since a lot of the other documents are part of indexes or summaries
@@ -161,7 +173,8 @@ Parish<-subset(ScotdataClean, Type =="P")
 
 # Explore the dataset created
 
-Create a Quanteda corpus of the 'text' column from our data set A corpus class object containing the original texts, document-level variables, document-level metadata, corpus-level metadata, and default settings for subsequent processing of the corpus. For quanteda \>= 2.0, this is a specially classed character vector.
+Create a Quanteda corpus of the 'text' column from our data set A corpus class object containing the original texts, document-level variables, document-level metadata, corpus-level metadata, and default settings for subsequent processing of the corpus.
+For quanteda \>= 2.0, this is a specially classed character vector.
 
 ```{r Quanteda corpus}
 CorpusStat<-corpus(Parish$text)
@@ -189,17 +202,18 @@ nchar(CorpusStat[1:10])
 
 ## Visualise this information
 
-1. Create a new vector with tokens for all articles and store the vector as a new data frame with four columns (Tokens, title, Area, Parish)
+1.  Create a new vector with tokens for all articles and store the vector as a new data frame with four columns (Tokens, title, Area, Parish)
 
 ```{r extract n token and add to table}
 NtokenStats<-as.vector(ntoken(CorpusStat))
 TokenScotland <-data.frame(Tokens=NtokenStats, title=Parish$title, Area=Parish$Area, Parish=Parish$Parish)
 ```
-2. Now we want to see how much material we have for each area. We can do that through a Pipe.
 
-R pipes are a way to chain multiple operations together in a concise and expressive way. 
-They are represented by the %>% operator, which takes the output of the expression on its left and passes it as the first argument to the function on its right. Using pipes in R allows us to link a sequence of analysis steps.
+2.  Now we want to see how much material we have for each area. We can do that through a Pipe.
 
+R pipes are a way to chain multiple operations together in a concise and expressive way.
+They are represented by the %\>% operator, which takes the output of the expression on its left and passes it as the first argument to the function on its right.
+Using pipes in R allows us to link a sequence of analysis steps.
 
 ```{r breakout1}
 BreakoutScotland<- TokenScotland %>%
@@ -207,11 +221,13 @@ BreakoutScotland<- TokenScotland %>%
   summarize(NReports=n(), # count n report 
             MeanTokens=round(mean(Tokens)))# mean of n of token per area
 ```
-3. Plot the results
 
-Now we can plot the trends. This is done through the use of the ggplot package that is a very handy package that will allow you to print a very big variety of graphs
+3.  Plot the results
 
-```{r, plot Results echo=TRUE,fig.height =7, fig.width = 14}
+Now we can plot the trends.
+This is done through the use of the ggplot package that is a very handy package that will allow you to print a very big variety of graphs
+
+```{r plot Results, echo=TRUE,fig.height =7, fig.width = 14}
 ggplot(BreakoutScotland, aes(x=Area, y=NReports))+ # Select data set and coordinates we are going to plot
   geom_point(aes(size=MeanTokens, fill=MeanTokens),shape=21, stroke=1.5, alpha=0.9, colour="black")+ # Which graph I want 
   labs(x = "Areas", y = "Number of Reports", fill = "Mean of Tokens", size="Mean of Tokens", title="Number of Reports and Tokens in the Scotland Archive")+ # Rename labs and title
@@ -223,11 +239,14 @@ ggplot(BreakoutScotland, aes(x=Area, y=NReports))+ # Select data set and coordin
   guides(size = "none") # Remove the Size from the Legend 
 
 ```
+
 # Part2: Geographical Data
 
-Since our data are all connected with places in Scotland we can look at topics within our dataset and how popular they are in different areas of Scotland. 
+Since our data are all connected with places in Scotland we can look at topics within our dataset and how popular they are in different areas of Scotland.
 
-To do so we need to work with a geoPackage containing the same information about the areas of Scotland contained in the dataset. GeoPackage is an open, portable, self-describing, compact format for transferring geo-spatial information. In our case it is a vectorial representation of the areas of Scotland in which the accounts are subdivided.
+To do so we need to work with a geoPackage containing the same information about the areas of Scotland contained in the dataset.
+GeoPackage is an open, portable, self-describing, compact format for transferring geo-spatial information.
+In our case it is a vectorial representation of the areas of Scotland in which the accounts are subdivided.
 
 Look at what is inside our dataset
 
