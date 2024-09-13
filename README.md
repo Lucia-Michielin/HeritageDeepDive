@@ -2,7 +2,10 @@
 Welcome to the EFI computational Research Deep Dive Repo. In here you can find material and code to analyse the Scottish Statistical Accounts Data and see computational method in practice.
 
 ## Content of the Repository
-The repository contains both the code and the material you are going to need to play around with the dataset 
+The repository contains both the code and the material you are going to need to play around with the dataset. 
+If you only want to visualise the notebook without running its content you can visualise it at [this address](https://htmlpreview.github.io/?https://github.com/DCS-training/EFIDeepDive/blob/main/EFIDeepDiveNoteable.html 
+![image](https://github.com/user-attachments/assets/56f10dcb-7bf6-40d2-beb9-7cbbadce1e2d)
+) 
 
 ## How to use it
 
