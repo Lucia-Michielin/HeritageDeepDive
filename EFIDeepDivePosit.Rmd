@@ -111,7 +111,7 @@ Fix the going to the next line issue. i.e. sub "- " with nothing "" There are a 
 ScotdataClean <- mutate_if(Scotdata, 
                            is.character, #apply the changes only if the data is a "character" type (e.g. text)
                            str_replace_all, 
-                           pattern = "-[[:space:]]+","") #What I am searching for+ what I am subbing with 
+                           pattern = "-[[:space:]]+","") #What I am searching for+ what I am subbing with. -[[:space:]]+ matches a hyphen followed by one or more whitespace characters. For example, it would match strings like "- " (hyphen followed by a space) or "- " (hyphen followed by multiple spaces). 
 ```
 
 ### Extract More info from the dataset
@@ -196,42 +196,6 @@ Check number of characters in the first 10 documents of the corpus
 nchar(CorpusStat[1:10])
 ```
 
-## Visualise this information
-
-1. Create a new vector with tokens for all articles and store the vector as a new data frame with four columns (Tokens, title, Area, Parish)
-
-```{r extract n token and add to table}
-NtokenStats<-as.vector(ntoken(CorpusStat))
-TokenScotland <-data.frame(Tokens=NtokenStats, title=Parish$title, Area=Parish$Area, Parish=Parish$Parish)
-```
-2. Now we want to see how much material we have for each area. We can do that through a Pipe.
-
-R pipes are a way to chain multiple operations together in a concise and expressive way. 
-They are represented by the %>% operator, which takes the output of the expression on its left and passes it as the first argument to the function on its right. Using pipes in R allows us to link a sequence of analysis steps.
-
-
-```{r breakout1}
-BreakoutScotland<- TokenScotland %>%
-  group_by(Area)%>%
-  summarize(NReports=n(), # count n report 
-            MeanTokens=round(mean(Tokens)))# mean of n of token per area
-```
-3. Plot the results
-
-Now we can plot the trends. This is done through the use of the ggplot package that is a very handy package that will allow you to print a very big variety of graphs
-
-```{r, plot Results echo=TRUE,fig.height =7, fig.width = 14}
-ggplot(BreakoutScotland, aes(x=Area, y=NReports))+ # Select data set and coordinates we are going to plot
-  geom_point(aes(size=MeanTokens, fill=MeanTokens),shape=21, stroke=1.5, alpha=0.9, colour="black")+ # Which graph I want 
-  labs(x = "Areas", y = "Number of Reports", fill = "Mean of Tokens", size="Mean of Tokens", title="Number of Reports and Tokens in the Scotland Archive")+ # Rename labs and title
-  scale_size_continuous(range = c(5, 15))+ # Resize the dots to be bigger
-  geom_text(aes(label=MeanTokens))+ # Add the mean of tokens in the dots
-  scale_fill_viridis_c(option = "plasma")+ # Change the colour coding
-  theme_bw()+ # B/W Background
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1), legend.position = "bottom")+ # Rotate labels of x and move them slightly down. Plus move the position to the bottom 
-  guides(size = "none") # Remove the Size from the Legend 
-
-```
 # Part2: Geographical Data
 
 Since our data are all connected with places in Scotland we can look at topics within our dataset and how popular they are in different areas of Scotland. 
