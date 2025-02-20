@@ -1,6 +1,5 @@
 install.packages("rmarkdown")
 install.packages("remotes")
-library(remotes)
 install_github("r-spatial/sf")
 install.packages("tmap")
 install.packages("quanteda")
