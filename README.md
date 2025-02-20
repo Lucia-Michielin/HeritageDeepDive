@@ -1,5 +1,5 @@
-# EFI Computational Research Deep Dive
-Welcome to the EFI computational Research Deep Dive Repo. In here you can find material and code to analyse the Scottish Statistical Accounts Data and see computational method in practice.
+#Computational Research Deep Dive
+Welcome to the Heritage Computational Research Deep Dive Repo. In here you can find material and code to analyse the Scottish Statistical Accounts Data and see computational methods in practice.
 
 ## Content of the Repository
 The repository contains both the code and the material you are going to need to play around with the dataset. 
@@ -7,24 +7,6 @@ If you only want to visualise the notebook without running its content you can v
 
 
 ## How to use it
-
-### On Noteable 
-1. Go to https://noteable.edina.ac.uk/login
-2. Login with your EASE credentials
-3. Select RStudio as a personal notebook server and press start
-4. Go to File >New Project>Version Control>Git
-5. Copy and Paste this repository URL [https://github.com/DCS-training/EFIDeepDive](https://github.com/DCS-training/EFIDeepDive) as the Repository URL
-6. The Project directory name will filled in automatically but you can change it if you want your folder in Notable to have a different name
-7. Decide where to locate the folder. By default, it will locate it in your home directory 
-8. Press Create Project
-
-Congratulations you have now pulled the content of the repository on your Notable server space the last thing you need to do is to install the packages not already installed in Noteable.
-
-#### Open the code file
-1. Double-click on the `EFIDeepDiveNoteable.Rmd`
-2. This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code.
-3. Try executing a chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*.
-4. The first block `Libraries Install and Load` will install and load the package you need. it may take some time to fully run.
 
 ### On Posit 
 1. Go to https://posit.cloud/
