@@ -1,0 +1,598 @@
+---
+title: "Deep Dive"
+author: "Lucia Michielin"
+date: "9/13/2024"
+output: html_document
+editor_options: 
+  markdown: 
+    wrap: sentence
+---
+
+```{r setup, include=FALSE}
+#install.packages("rmarkdown")
+#library(rmarkdown)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Libraries Install and Load, echo=FALSE, include=FALSE}
+#install.packages("remotes")
+#library(remotes)
+#install_github("r-spatial/sf")
+#install.packages("tmap")
+#install.packages("quanteda")
+#install.packages("RColorBrewer")
+#install.packages("here")
+#install.packages("tidyverse")
+#install.packages("data.table")
+
+library(tmap)# to plot geographical data
+library(quanteda)# to do text analysis 
+library(sf)# to import geographical data 
+library(RColorBrewer)# Custom colour palettes
+library(here) #  Enables easy file referencing by using the top-level directory of a file project to easily build file paths
+library(tidyverse) # Collection of packages for data wrangling and data cleaning 
+library(data.table)# 
+```
+
+## Introduction
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook.
+When you execute code within the notebook, the results appear beneath the code.
+
+Try executing this chunk by clicking the \*Run\* button within the chunk or by placing your cursor inside it and pressing \*Ctrl+Shift+Enter\*.
+
+```{r cars, echo=FALSE}
+plot(cars)
+```
+
+Ok that is a standard dataset that does not mean much.
+The mtcars dataset is a built-in dataset in R that contains measurements on 11 different attributes for 32 different cars.
+
+So let's see some thinking more interesting!
+
+# Our Dataset
+
+The Statistical Accounts of Scotland are a series of documentary publications, related in subject matter though published at different times, covering life in Scotland in the 18th and 19th.
+
+The Old (or First) Statistical Account of Scotland was published between 1791 and 1799 by Sir John Sinclair of Ulbster.
+The New (or Second) Statistical Account of Scotland published under the auspices of the General Assembly of the Church of Scotland between 1834 and 1845.
+These first two Statistical Accounts of Scotland are unique records of life during the agricultural and industrial revolutions in Europe.
+
+## Structure of the dataset
+
+The original publication has been scanned and OCRed and each single record has been collected in a .txt file.
+The name of each file contain information about the document itself.
+For example StAS.2.15.91.P.Orkney.Cross_and_Burness
+
+-   StAs.2.15.91 -\> Second Statistical Account
+
+-   P -\> Parish (Contain information from the Parish)
+
+-   Orkney -\> Area of interest (Scotland has been divided in 33 Areas)
+
+-   Cross_and_Burness -\> Parish
+
+We are going to see how to use this to extract information about all our text later but the first thing we need to do is to create a single dataframe (table) that will contain all the texts otherwise it will be very difficult to manage the data.
+
+## Prepare the dataset
+
+All our .txt files are in a directory named Account so I can write a function that will loop through each of the files extract the text and the tile of each file and put them all in a table.
+
+Doing it manually would take a ridiculous amount of time but that is what computer are for so let's see what we can do.
+
+1\.
+Create a new object that contain the path to our directory
+
+```{r set directory}
+text_files_dir <- "Accounts"
+```
+
+2.  Create an empty data.table that we are going to populate with the info we are going to extract
+
+```{r create new table}
+text_files <- list.files(text_files_dir, pattern = "\\.txt$", full.names = TRUE)#search for .txt
+
+Scotdata <- data.table(title = character(), text = character())# create a table with two column one named title and one text
+```
+
+3.  Iterate through each text file We do this by using a forloop function
+
+```{r populate table}
+for (file in text_files) {
+  # Specify the encoding (e.g., "latin1")
+  text <- tolower(iconv(readLines(file, warn = FALSE), from = "latin1", to = "UTF-8", sub = ""))# tolower gets all text low cap 
+  title <- gsub(".txt$", "", basename(file))# gsub extracts the pattern define so the tile of the files before .txt
+  Scotdata <- rbindlist(list(Scotdata, data.table(title = title, text = paste(text, collapse = " "))))# bind them together
+}
+```
+
+4.  look at the first 5 row of our file and save the table as a .csv so I do not have to do it every single time
+
+```{r check result}
+head(Scotdata)
+write.csv(Scotdata, "text_data.csv", row.names = FALSE)
+```
+
+## Clean and format the data
+
+### Fix some formatting issues
+
+Fix the going to the next line issue.
+i.e. sub "- " with nothing "" There are a lot of formatting errors (next line, next paragraph) that we want to clean up
+
+```{r Clean data}
+ScotdataClean <- mutate_if(Scotdata, 
+                           is.character, #apply the changes only if the data is a "character" type (e.g. text)
+                           str_replace_all, 
+                           pattern = "-[[:space:]]+","") #What I am searching for+ what I am subbing with. -[[:space:]]+ matches a hyphen followed by one or more whitespace characters. For example, it would match strings like "- " (hyphen followed by a space) or "- " (hyphen followed by multiple spaces). 
+```
+
+### Extract More info from the dataset
+
+To do the following steps we are using regex.
+Short for regular expression, a regex is a string of text that lets you create patterns that help match, locate, and manage text.
+Think find and replace in Word
+
+1.  Extract area and parish from the title
+
+-   P=Parish
+-   C=Miscellanea
+-   G=General Observations
+-   A=Appendix
+-   F=General
+-   I=Index
+-   M=Map
+
+I want to be able to subset the dataset by those and I also want to have them both as a code as a description to do so I need to write a if else clause
+
+```{r Extract type Info from Titles}
+ScotdataClean$Type<- sub(".*(P|C|G|A|F|M|I)\\.(.*?)\\..*", "\\1", ScotdataClean$title)#This is selecting the P|C|G|A|F|M|I
+ScotdataClean$TypeDescriptive<- ifelse(
+  ScotdataClean$Type =="P", "Parish",ifelse(
+    ScotdataClean$Type =="C","Miscellanea", ifelse(
+      ScotdataClean$Type =="G","General Observations", ifelse(
+        ScotdataClean$Type =="A", "Appendix", ifelse(
+          ScotdataClean$Type =="F","General", ifelse(
+            ScotdataClean$Type =="I", "Index","Map"))))))
+```
+
+2.  I want the first bit of the title as the RecordId of the document
+
+```{r Extract record ID from Titles}
+ScotdataClean$RecordID<- sub("^(StAS\\.\\d+\\.\\d+\\.\\d+).*","\\1",  ScotdataClean$title)
+```
+
+3.  I also want to extract the area that is the bit after p/c/g/a/f/m/i
+
+```{r Extract area from Titles}
+ScotdataClean$Area<- sub(".*(P|C|G|A|F|M|I)\\.(.*?)\\..*", "\\2", ScotdataClean$title)# //2 cause I want to select the second bit so after the letters
+```
+
+4.  Extract the Parish. I can do so by extracting the last bit up until the full stop
+
+```{r Extract parish from Titles}
+ScotdataClean$Parish<- sub(".*\\.", "", ScotdataClean$title)
+```
+
+### Subset the dataset to only keep the text with information from the parishes
+
+We will now start to look at what is inside but before starting our analysis we want to work only on the parish observations since a lot of the other documents are part of indexes or summaries
+
+```{r extract parish data}
+Parish<-subset(ScotdataClean, Type =="P")
+
+write_csv(Parish, "Parish.csv")
+```
+
+# Explore the dataset created
+
+Create a Quanteda corpus of the 'text' column from our data set A corpus class object containing the original texts, document-level variables, document-level metadata, corpus-level metadata, and default settings for subsequent processing of the corpus.
+For quanteda \>= 2.0, this is a specially classed character vector.
+
+```{r Quanteda corpus}
+CorpusStat<-corpus(Parish$text)
+```
+
+## Summarise the content of the corpus
+
+Print doc in position 5 of the corpus
+
+```{r Overview Corpus}
+summary(CorpusStat, 5)
+```
+
+Check how many docs are in the corpus
+
+```{r number docs}
+ndoc(CorpusStat) 
+```
+
+Check number of characters in the first 10 documents of the corpus
+
+```{r number carachters for first 10 text }
+nchar(CorpusStat[1:10])
+```
+
+# Part2: Geographical Data
+
+Since our data are all connected with places in Scotland we can look at topics within our dataset and how popular they are in different areas of Scotland.
+
+To do so we need to work with a geoPackage containing the same information about the areas of Scotland contained in the dataset.
+GeoPackage is an open, portable, self-describing, compact format for transferring geo-spatial information.
+In our case it is a vectorial representation of the areas of Scotland in which the accounts are subdivided.
+
+Look at what is inside our dataset
+
+```{r summary dataset}
+summary(Parish)
+```
+
+### Import the Geographical Data
+
+Then we import the first GeoPackage.
+A GeoPackage is an open, standards-based format designed for the efficient storage, transfer, and exchange of geospatial data.
+Developed by the Open Geospatial Consortium (OGC), it serves as a container for various types of geospatial information, including vector features, raster maps, and attribute data, all within a single file <https://www.geopackage.org/>.
+
+st_read Function: \* from st package that reads vector spatial data.
+\* dsn = data source name, essentially the file name and the folder path
+
+```{r Gpkg1, warning=FALSE}
+ParishesGeo <- st_read(dsn = "Spatial/Parishes.gpkg")
+plot(ParishesGeo, main = "Scottish Parishes")
+```
+
+As you can see from the plot, the dataset is made up of vector polygons.
+You can also change the basic presentation, such as the colour of the fill, line width and colour.
+
+```{r Gpkg2 }
+plot(ParishesGeo,
+     col = "black",
+     lwd = 1,
+     border = "white",
+     main = "Scottish Parishes")
+```
+
+## Work on Illness Mentions
+
+### Extract Information from the textual data
+
+Because we want to see how often mention of a certain topic are present in the text we want to search for specific keywords
+
+The first topic we are going to look at is Illness.
+So we are creating a new variable that would contain yes if the text contains one of the keywords or no if it does not
+
+1.Search keywords
+
+```{r }
+Parish$Ilness<- ifelse(grepl("ill|ilness|sick|cholera|smallpox|plague|cough|typhoid|fever|measles|dysentery", Parish$text,
+                             ignore.case = T), "yes","no")
+
+head(Parish$Ilness)
+```
+
+2.  Group by Illness and geographical area
+
+To do this we use a pipe, if you have never seen a pipe before is basically a way to perform a series of action on a dataset in a certain order (you can think at it as bullet points of actions)
+
+```{r }
+IlnessGroup <- Parish %>%
+  group_by(Area) %>%
+  summarise(Total = n(),
+            count = sum(Ilness == "yes")) %>%
+  mutate(per = round(count/Total, 2))
+
+head(IlnessGroup)
+```
+
+3.Merge the two datasets
+
+```{r }
+MergedGeo <-merge(ParishesGeo,IlnessGroup,
+                  by.x="JOIN_NAME_",
+                  by.y="Area",
+                  all.x = TRUE) # nb this is left join cause I want to preserve all the records present in ParishGeo
+
+```
+
+4.Check data to have merged properly
+
+```{r }
+head(MergedGeo, max.level = 2)
+```
+
+### Visualise the new dataset
+
+1.Create a continuous color palette
+
+```{r }
+color.palette <- colorRampPalette(c("white", "red"))
+```
+
+2.  Spatial plot using tmap
+
+tm_shape is a function in the tmap package (Thematic maps).
+Thematic maps can be generated with great flexibility.
+The syntax for creating plots is similar to that of ggplot2, but tailored to maps.
+To plot a tmap, you will need to specify firstly tm_shape, layers then can be added with the + operator.
+tm_fill specifies the presentation of the polygons.
+To differentiate NA values from other valid entries, colorNA is added.
+
+-   col.regions = color.palette(100): specifies the colour to fill the polygon, now set to generate a palette with 100 distinct colours.
+
+```{r }
+
+tm_shape(MergedGeo) + # Specify the spatial object (MergedGeo) to be used in the map
+  tm_fill("per", palette = color.palette(100), colorNA = "grey") + # Fill polygons based on 'per' variable, using a custom color palette with 100 colors; grey for NA values
+  tm_borders(col = "black") + # Add black borders to each polygon
+  tm_layout(title = "Illness report", legend.text.size = 0.75, legend.title.size = 1, frame = FALSE) # Set layout: add a title, resize legend text and title, remove frame
+
+
+```
+
+### Work with map colours
+
+Let's try changing the colour of the filled regions using predifined colours.
+There are predifined colour palettes you can use directly.
+Commonly used palettes include: rainbow(), heat.colors(), topo.colors(), and terrain.colors() Beware of the representation of colours.
+You might need to reverse the colour band to make the representations more intuitive.
+
+```{r }
+tm_shape(MergedGeo) + # Specify the spatial object (MergedGeo) to be used in the map
+  tm_fill("per", palette = rev(heat.colors(100)), colorNA = "grey") + # Fill polygons based on 'per' variable, using a reversed heat.colors palette with 100 colors; grey for NA values
+  tm_borders(col = "black") + # Add black borders to each polygon
+  tm_layout(title = "Illness report", legend.text.size = 0.75, legend.title.size = 1, frame = FALSE) # Set layout: add a title, resize legend text and title, remove frame
+
+```
+
+You could also change the colour using RColorBrewer
+
+```{r }
+
+display.brewer.all()# show all the palettes in Colour brewer
+color.palette <- brewer.pal(n = 9, name = "YlOrRd")#create a tailored new palette
+```
+
+We can now replot using the new palette.
+
+```{r }
+tm_shape(MergedGeo) + # Specify the spatial object (MergedGeo) to be used in the map
+  tm_fill("per", palette = color.palette, colorNA = "grey") + # Fill polygons based on 'per' variable, using a custom color palette (color.palette); grey for NA values
+  tm_borders(col = "black") + # Add black borders to each polygon
+  tm_layout(title = "Illness report", legend.text.size = 0.75, legend.title.size = 1, frame = FALSE) # Set layout: add a title, resize legend text and title, remove frame
+
+
+```
+
+### Work on the legend intervals
+
+Change the spacing of the interval.
+The intervals can be keyed in directly using and style to change the type of breaks
+
+1\.
+"fixed": User-defined fixed breaks.
+
+2\.
+"pretty": Breaks at pretty intervals (often used for visual appeal).
+
+3\.
+"quantile": Breaks at quantile intervals (each class has an equal number of observations).
+
+4\.
+"equal": Breaks at equal intervals.
+
+5\.
+"kmeans": Breaks determined by k-means clustering.
+
+6\.
+"hclust": Breaks determined by hierarchical clustering.
+
+7\.
+"bclust": Breaks determined by bin-based clustering.
+
+8\.
+"fisher": Breaks determined by Fisher-Jenks natural breaks optimization.
+
+9\.
+"jenks": Another name for Fisher-Jenks breaks.
+
+10\.
+"sd": Breaks determined by standard deviations from the mean.
+
+11\.
+"log10_pretty": Breaks determined by log10 transformed values with pretty intervals.
+
+12\.
+"cont": Continuous color scale (no discrete breaks).
+
+```{r }
+tm_shape(MergedGeo) + # Specify the spatial object (MergedGeo) to be used in the map
+  tm_fill("per", style = "equal", n = 10, palette = color.palette, colorNA = "grey") + # Fill polygons based on 'per' variable; use equal interval classification with 10 classes; custom color palette; grey for NA values
+  tm_borders(col = "black") + # Add black borders to each polygon
+  tm_layout(title = "Illness report", legend.text.size = 0.75, legend.title.size = 1, frame = FALSE, legend.position = c(1, 0.5)) # Set layout: add a title, resize legend text and title, remove frame, position legend at (1, 0.5)
+
+```
+
+## Now we can work on a different subject: Witches
+
+The steps are always the same first we need to search keywords and then we merge the results with our map of Scotland.
+
+### Preparing the data set
+
+```{r }
+Parish$witches<- ifelse(grepl("witch|spell|witches|enchantemt|magic", Parish$text, ignore.case = T), "yes","no")
+```
+
+Can you think to other keywords?
+just add them to the code above.
+
+Then we group by
+
+```{r }
+WitchGroup <- Parish %>%
+  group_by(Area) %>%
+  summarise(Total = n(), count = sum(witches == "yes")) %>%
+  mutate(per = round(count / Total, 2))
+
+```
+
+And finally we merge
+
+```{r }
+MergedGeo2 <-merge(ParishesGeo,WitchGroup, by.x="JOIN_NAME_", by.y="Area", all.x = TRUE) # nb this is left join cause I want to preserve all the records present in ParishGeo
+```
+
+Let's create a more "witchy" Palette
+
+```{r }
+color.palette2 <- colorRampPalette(c("white", "purple"), alpha = 0.5)
+```
+
+### Plot the result
+
+```{r }
+tm_shape(MergedGeo2) +
+  tm_fill("per", palette = color.palette2(100), colorNA = "grey") +
+  tm_borders(col = "black")+
+  tm_layout(title = "Witchcraft report",
+            legend.text.size = 0.75,
+            legend.title.size = 1,
+            frame = FALSE)
+
+```
+
+### Refine the results:Adding scale bar and north arrow
+
+Adding the scale bar and north arrow to the map using tmap is a lot simpler.
+
+```{r }
+tm_shape(MergedGeo2) +
+  tm_fill("per",
+          style = "equal",
+          n = 5,
+          palette = color.palette2(100),
+          colorNA = "grey") +
+  tm_borders(col = "black")+
+  tm_layout(title = "Witches Reports",
+            legend.text.size = 0.75,
+            legend.title.size = 1,
+            frame = FALSE) +
+  tm_scale_bar(position = "left") + #add scalebar
+  tm_compass(size = 1.5)#add north arrow
+```
+
+## Whiski consumption
+
+Let's connect back to the one of the main topics of this week and look at whiski consumption across Scotland.
+
+Unsurprisingly the first steps remain the same.
+
+1.  Search the keywords
+
+```{r }
+Parish$Booze<- ifelse(grepl("illicit still|illicit distillery|drunk|intemperance|wisky|whisky|whiskey|whysky |alembic",Parish$text, ignore.case = T), "yes","no")
+```
+
+2.  Group by the new column and area
+
+```{r }
+BoozeGroup <- Parish %>%
+  group_by(Area) %>%
+  summarise(Total = n(), count = sum(Booze == "yes")) %>%
+  mutate(per = round(count / Total, 2))
+
+```
+
+3.  Merge back
+
+```{r }
+MergedGeo3 <-merge(ParishesGeo,BoozeGroup, by.x="JOIN_NAME_", by.y="Area",all.x = TRUE) # nb this is left join cause I want to preserve all the records present in ParishGeo
+
+```
+
+4.  Create a Palette
+
+```{r }
+color.palette3 <- colorRampPalette(c("white", "Brown"))
+
+```
+
+5.  Plot with tmap
+
+```{r }
+tm_shape(MergedGeo3) +
+  tm_fill("per",
+          style = "equal",
+          n = 5,
+          palette = color.palette3(100),
+          colorNA = "grey") +
+  tm_borders(col = "black")+
+  tm_layout(title = "Whisky Reports",
+            legend.text.size = 0.75,
+            legend.title.size = 1,
+            frame = FALSE) +
+  tm_scale_bar(position = "left") +
+  tm_compass(size = 1.5)
+
+```
+
+### Work with multiple datasets
+
+Add the second dataset i.e. the punctual dataset with the location of the modern day distilleries.
+
+```{r}
+PointsDistilleries<- st_read(dsn = "Spatial/ScottishDistilleries.gpkg")
+```
+
+```{r }
+
+tm_shape(MergedGeo3) +
+  tm_fill("per",
+          style = "equal",
+          n = 5,
+          palette = color.palette3(100),
+          colorNA = "grey") +
+  tm_borders(col = "black")+
+  tm_layout(title = "Whisky Reports",
+            legend.text.size = 0.75,
+            legend.title.size = 1,
+            frame = FALSE) +
+  tm_scale_bar(position = "left") +
+  tm_compass(size = 1.5)+
+  tm_shape(PointsDistilleries) + # we add our new datest
+  tm_dots(size=0.1,
+          col="black", #This time they are dots rather than fill
+          colorNA = NULL)
+
+```
+
+We can also use bespoke symbols for distilleries locations and plot it again.
+
+```{r }
+icon <- tmap_icons("bottle.png") 
+
+tm_shape(MergedGeo3) + 
+  # Fill the polygons based on the "per" attribute
+  tm_fill("per", 
+          style = "equal",  # Use equal interval breaks
+          n = 5,  # Number of classes to divide the data into
+          palette = color.palette3(100),  # Color palette with 100 color levels
+          colorNA = "grey") +  # Color for missing values
+  # Add borders to the polygons
+  tm_borders(col = "black") +
+  # Add another spatial object to the map
+  tm_shape(PointsDistilleries) +
+  # Add symbols (icons) for the spatial points
+  tm_symbols(size = 0.3, # Size of the symbols
+             clustering = TRUE,
+             shape = icon,# Symbol shape (specified by the 'icon' variable)
+             border.lwd = 0,) +   # Border width of the symbols 
+  # Add layout elements like title and legend settings
+  tm_layout(title = "Booze Reports",  # Title of the map
+            legend.text.size = 0.75,  # Size of the legend text
+            legend.title.size = 1,  # Size of the legend title
+            frame = FALSE) +  # Do not draw a frame around the map
+  # Add a scale bar to the map
+  tm_scale_bar(position = "left") +  # Position of the scale bar
+  # Add a compass to the map
+  tm_compass(size = 1.5)  # Size of the compass
+```
