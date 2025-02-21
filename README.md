@@ -95,7 +95,8 @@ Once you have installed R and R studio you can open the notebook we are going to
 Please also run the following code to install the packages needed. The same installation commands are present at the start of the document but they are commented out. 
 To run them you need to remove all the # you see in the first two cells of code.
 
- ```install.packages("rmarkdown")
+ ```
+install.packages("rmarkdown")
 install.packages("remotes")
 library(remotes)
 install_github("r-spatial/sf")
