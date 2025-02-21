@@ -1,4 +1,4 @@
-#Computational Research Deep Dive
+# Computational Research Deep Dive
 Welcome to the Heritage Computational Research Deep Dive Repo. In here you can find material and code to analyse the Scottish Statistical Accounts Data and see computational methods in practice.
 
 ## Content of the Repository
