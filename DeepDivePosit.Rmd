@@ -10,7 +10,7 @@ editor_options:
 
 ```{r setup, include=FALSE}
 #install.packages("rmarkdown")
-#library(rmarkdown)
+library(rmarkdown)
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -252,7 +252,7 @@ plot(ParishesGeo,
      main = "Scottish Parishes")
 ```
 
-## Work on Illness Mentions
+## Work on Conflict Mentions
 
 ### Extract Information from the textual data
 
@@ -264,30 +264,30 @@ So we are creating a new variable that would contain yes if the text contains on
 1.Search keywords
 
 ```{r }
-Parish$Ilness<- ifelse(grepl("ill|ilness|sick|cholera|smallpox|plague|cough|typhoid|fever|measles|dysentery", Parish$text,
+Parish$Conflict<- ifelse(grepl("war|fight|sick|scuffle|bloodshed|military|conflict", Parish$text,
                              ignore.case = T), "yes","no")
 
-head(Parish$Ilness)
+head(Parish$Conflict)
 ```
 
-2.  Group by Illness and geographical area
+2.  Group by Conflict and geographical area
 
 To do this we use a pipe, if you have never seen a pipe before is basically a way to perform a series of action on a dataset in a certain order (you can think at it as bullet points of actions)
 
 ```{r }
-IlnessGroup <- Parish %>%
+ConflictGroup <- Parish %>%
   group_by(Area) %>%
   summarise(Total = n(),
-            count = sum(Ilness == "yes")) %>%
+            count = sum(Conflict == "yes")) %>%
   mutate(per = round(count/Total, 2))
 
-head(IlnessGroup)
+head(ConflictGroup)
 ```
 
 3.Merge the two datasets
 
 ```{r }
-MergedGeo <-merge(ParishesGeo,IlnessGroup,
+MergedGeo <-merge(ParishesGeo,ConflictGroup,
                   by.x="JOIN_NAME_",
                   by.y="Area",
                   all.x = TRUE) # nb this is left join cause I want to preserve all the records present in ParishGeo
@@ -324,7 +324,7 @@ To differentiate NA values from other valid entries, colorNA is added.
 tm_shape(MergedGeo) + # Specify the spatial object (MergedGeo) to be used in the map
   tm_fill("per", palette = color.palette(100), colorNA = "grey") + # Fill polygons based on 'per' variable, using a custom color palette with 100 colors; grey for NA values
   tm_borders(col = "black") + # Add black borders to each polygon
-  tm_layout(title = "Illness report", legend.text.size = 0.75, legend.title.size = 1, frame = FALSE) # Set layout: add a title, resize legend text and title, remove frame
+  tm_layout(title = "Conflict reports", legend.text.size = 0.75, legend.title.size = 1, frame = FALSE) # Set layout: add a title, resize legend text and title, remove frame
 
 
 ```
@@ -340,7 +340,7 @@ You might need to reverse the colour band to make the representations more intui
 tm_shape(MergedGeo) + # Specify the spatial object (MergedGeo) to be used in the map
   tm_fill("per", palette = rev(heat.colors(100)), colorNA = "grey") + # Fill polygons based on 'per' variable, using a reversed heat.colors palette with 100 colors; grey for NA values
   tm_borders(col = "black") + # Add black borders to each polygon
-  tm_layout(title = "Illness report", legend.text.size = 0.75, legend.title.size = 1, frame = FALSE) # Set layout: add a title, resize legend text and title, remove frame
+  tm_layout(title = "Conflict report", legend.text.size = 0.75, legend.title.size = 1, frame = FALSE) # Set layout: add a title, resize legend text and title, remove frame
 
 ```
 
@@ -358,7 +358,7 @@ We can now replot using the new palette.
 tm_shape(MergedGeo) + # Specify the spatial object (MergedGeo) to be used in the map
   tm_fill("per", palette = color.palette, colorNA = "grey") + # Fill polygons based on 'per' variable, using a custom color palette (color.palette); grey for NA values
   tm_borders(col = "black") + # Add black borders to each polygon
-  tm_layout(title = "Illness report", legend.text.size = 0.75, legend.title.size = 1, frame = FALSE) # Set layout: add a title, resize legend text and title, remove frame
+  tm_layout(title = "Conflict report", legend.text.size = 0.75, legend.title.size = 1, frame = FALSE) # Set layout: add a title, resize legend text and title, remove frame
 
 
 ```
@@ -408,7 +408,7 @@ The intervals can be keyed in directly using and style to change the type of bre
 tm_shape(MergedGeo) + # Specify the spatial object (MergedGeo) to be used in the map
   tm_fill("per", style = "equal", n = 10, palette = color.palette, colorNA = "grey") + # Fill polygons based on 'per' variable; use equal interval classification with 10 classes; custom color palette; grey for NA values
   tm_borders(col = "black") + # Add black borders to each polygon
-  tm_layout(title = "Illness report", legend.text.size = 0.75, legend.title.size = 1, frame = FALSE, legend.position = c(1, 0.5)) # Set layout: add a title, resize legend text and title, remove frame, position legend at (1, 0.5)
+  tm_layout(title = "Conflict reports", legend.text.size = 0.75, legend.title.size = 1, frame = FALSE, legend.position = c(1, 0.5)) # Set layout: add a title, resize legend text and title, remove frame, position legend at (1, 0.5)
 
 ```
 
@@ -489,15 +489,15 @@ Unsurprisingly the first steps remain the same.
 1.  Search the keywords
 
 ```{r }
-Parish$Booze<- ifelse(grepl("illicit still|illicit distillery|drunk|intemperance|wisky|whisky|whiskey|whysky |alembic",Parish$text, ignore.case = T), "yes","no")
+Parish$Whiski<- ifelse(grepl("illicit still|illicit distillery|drunk|intemperance|wisky|whisky|whiskey|whysky |alembic",Parish$text, ignore.case = T), "yes","no")
 ```
 
 2.  Group by the new column and area
 
 ```{r }
-BoozeGroup <- Parish %>%
+WhiskiGroup <- Parish %>%
   group_by(Area) %>%
-  summarise(Total = n(), count = sum(Booze == "yes")) %>%
+  summarise(Total = n(), count = sum(Whiski == "yes")) %>%
   mutate(per = round(count / Total, 2))
 
 ```
@@ -505,7 +505,7 @@ BoozeGroup <- Parish %>%
 3.  Merge back
 
 ```{r }
-MergedGeo3 <-merge(ParishesGeo,BoozeGroup, by.x="JOIN_NAME_", by.y="Area",all.x = TRUE) # nb this is left join cause I want to preserve all the records present in ParishGeo
+MergedGeo3 <-merge(ParishesGeo,WhiskiGroup, by.x="JOIN_NAME_", by.y="Area",all.x = TRUE) # nb this is left join cause I want to preserve all the records present in ParishGeo
 
 ```
 
@@ -526,7 +526,7 @@ tm_shape(MergedGeo3) +
           palette = color.palette3(100),
           colorNA = "grey") +
   tm_borders(col = "black")+
-  tm_layout(title = "Whisky Reports",
+  tm_layout(title = "Whiski Reports",
             legend.text.size = 0.75,
             legend.title.size = 1,
             frame = FALSE) +
@@ -552,7 +552,7 @@ tm_shape(MergedGeo3) +
           palette = color.palette3(100),
           colorNA = "grey") +
   tm_borders(col = "black")+
-  tm_layout(title = "Whisky Reports",
+  tm_layout(title = "Whiski Reports",
             legend.text.size = 0.75,
             legend.title.size = 1,
             frame = FALSE) +
@@ -587,7 +587,7 @@ tm_shape(MergedGeo3) +
              shape = icon,# Symbol shape (specified by the 'icon' variable)
              border.lwd = 0,) +   # Border width of the symbols 
   # Add layout elements like title and legend settings
-  tm_layout(title = "Booze Reports",  # Title of the map
+  tm_layout(title = "Whiski Reports",  # Title of the map
             legend.text.size = 0.75,  # Size of the legend text
             legend.title.size = 1,  # Size of the legend title
             frame = FALSE) +  # Do not draw a frame around the map
@@ -596,3 +596,4 @@ tm_shape(MergedGeo3) +
   # Add a compass to the map
   tm_compass(size = 1.5)  # Size of the compass
 ```
+# THE END 
