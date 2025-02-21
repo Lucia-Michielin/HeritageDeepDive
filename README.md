@@ -1,9 +1,9 @@
-#Computational Research Deep Dive
+# Computational Research Deep Dive
 Welcome to the Heritage Computational Research Deep Dive Repo. In here you can find material and code to analyse the Scottish Statistical Accounts Data and see computational methods in practice.
 
 ## Content of the Repository
 The repository contains both the code and the material you are going to need to play around with the dataset. 
-If you only want to visualise the notebook without running its content you can visualise it at [this address](https://htmlpreview.github.io/?https://github.com/DCS-training/EFIDeepDive/blob/main/EFIDeepDiveNoteable.html).
+If you only want to visualise the notebook without running its content you can visualise it at [this address](https://htmlpreview.github.io/?https://github.com/Lucia-Michielin/HeritageDeepDive/blob/main/DeepDivePosit.html).
 
 
 ## How to use it
@@ -95,7 +95,8 @@ Once you have installed R and R studio you can open the notebook we are going to
 Please also run the following code to install the packages needed. The same installation commands are present at the start of the document but they are commented out. 
 To run them you need to remove all the # you see in the first two cells of code.
 
-'install.packages("rmarkdown")
+ ```
+install.packages("rmarkdown")
 install.packages("remotes")
 library(remotes)
 install_github("r-spatial/sf")
@@ -105,7 +106,7 @@ install.packages("RColorBrewer")
 install.packages("here")
 install.packages("tidyverse")
 install.packages("data.table")
-'
+ ```
 To run a cell in rmarkdown you can press the triangle symbol on the top right corner of each cell 
 
 ### On Posit 
