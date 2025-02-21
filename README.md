@@ -3,6 +3,7 @@ Welcome to the Heritage Computational Research Deep Dive Repo. In here you can f
 
 ## Content of the Repository
 The repository contains both the code and the material you are going to need to play around with the dataset. 
+You can also find the slides of the presentation:'HeritageMichielin2025.pdf'
 If you only want to visualise the notebook without running its content you can visualise it at [this address](https://htmlpreview.github.io/?https://github.com/Lucia-Michielin/HeritageDeepDive/blob/main/DeepDivePosit.html).
 
 
